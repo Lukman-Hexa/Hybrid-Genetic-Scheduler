@@ -1,0 +1,9 @@
+Flask
+Werkzeug
+openpyxl
+reportlab
+python-docx
+Jinja2
+MarkupSafe
+pymongo
+python-dotenv

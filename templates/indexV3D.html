@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Penjadwalan Kuliah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-8 text-center">
+            <h1 class="text-5xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+                <i class="fas fa-calendar-alt text-blue-400"></i> Sistem Penjadwalan Kuliah
+            </h1>
+            <p class="text-gray-400 text-lg">Optimasi dengan Algoritma Genetika</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <!-- Form Input - Diperlebar -->
+            <div class="lg:col-span-2">
+                <div class="bg-slate-800 rounded-lg shadow-2xl p-8 sticky top-8">
+                    <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                        <i class="fas fa-cogs text-green-400"></i> Konfigurasi
+                    </h2>
+
+                    <form id="configForm" class="space-y-6">
+                        <!-- Ruangan Section -->
+                        <div class="bg-slate-700 p-6 rounded-lg">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-white font-bold text-lg flex items-center gap-2">
+                                    <i class="fas fa-door-open text-blue-400"></i> Ruangan
+                                    <span id="roomCount" class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">0</span>
+                                </label>
+                                <span class="text-gray-400 text-xs bg-slate-600 px-2 py-1 rounded">Tempat mengajar</span>
+                            </div>
+                            <!-- Search bar ruangan -->
+                            <div class="relative mb-3">
+                                <input type="text" id="roomSearch" placeholder="Cari ruangan..." 
+                                    oninput="filterList('room')"
+                                    class="w-full pl-8 pr-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg border border-slate-500 focus:border-blue-400 focus:outline-none">
+                                <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                            </div>
+                            <div id="roomsList" class="space-y-2 mb-4 max-h-52 overflow-y-auto pr-1">
+                            </div>
+                            <button type="button" onclick="openRoomModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2">
+                                <i class="fas fa-plus"></i> Tambah Ruangan
+                            </button>
+                        </div>
+
+                        <!-- Dosen Section -->
+                        <div class="bg-slate-700 p-6 rounded-lg">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-white font-bold text-lg flex items-center gap-2">
+                                    <i class="fas fa-user-tie text-purple-400"></i> Dosen
+                                    <span id="dosenCount" class="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">0</span>
+                                </label>
+                                <span class="text-gray-400 text-xs bg-slate-600 px-2 py-1 rounded">Pengajar</span>
+                            </div>
+                            <!-- Search bar dosen -->
+                            <div class="relative mb-3">
+                                <input type="text" id="dosenSearch" placeholder="Cari dosen..." 
+                                    oninput="filterList('dosen')"
+                                    class="w-full pl-8 pr-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg border border-slate-500 focus:border-purple-400 focus:outline-none">
+                                <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                            </div>
+                            <div id="dosenList" class="space-y-2 mb-4 max-h-52 overflow-y-auto pr-1">
+                            </div>
+                            <button type="button" onclick="openDosenModal()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2">
+                                <i class="fas fa-plus"></i> Tambah Dosen
+                            </button>
+                        </div>
+
+                        <!-- Mata Kuliah Section -->
+                        <div class="bg-slate-700 p-6 rounded-lg">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-white font-bold text-lg flex items-center gap-2">
+                                    <i class="fas fa-book text-yellow-400"></i> Mata Kuliah
+                                    <span id="courseCount" class="text-xs bg-yellow-600 text-white px-2 py-0.5 rounded-full">0</span>
+                                </label>
+                                <span class="text-gray-400 text-xs bg-slate-600 px-2 py-1 rounded">Pelajaran</span>
+                            </div>
+                            <!-- Filter semester -->
+                            <div class="flex gap-2 mb-3">
+                                <div class="relative flex-1">
+                                    <input type="text" id="courseSearch" placeholder="Cari mata kuliah..." 
+                                        oninput="filterList('course')"
+                                        class="w-full pl-8 pr-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg border border-slate-500 focus:border-yellow-400 focus:outline-none">
+                                    <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                                </div>
+                                <select id="courseFilterSem" onchange="filterList('course')"
+                                    class="px-2 py-1.5 bg-slate-600 text-white text-xs rounded-lg border border-slate-500 focus:border-yellow-400 focus:outline-none">
+                                    <option value="">Sem: Semua</option>
+                                    <option value="1">Sem 1</option><option value="2">Sem 2</option>
+                                    <option value="3">Sem 3</option><option value="4">Sem 4</option>
+                                    <option value="5">Sem 5</option><option value="6">Sem 6</option>
+                                    <option value="7">Sem 7</option><option value="8">Sem 8</option>
+                                </select>
+                            </div>
+                            <div id="coursesList" class="space-y-1 mb-4 max-h-64 overflow-y-auto pr-1">
+                            </div>
+                            <button type="button" onclick="openCourseModal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2">
+                                <i class="fas fa-plus"></i> Tambah Mata Kuliah
+                            </button>
+                        </div>
+                        
+                        <!-- ⭐ FITUR BARU: Tipe Semester -->
+                        <div class="bg-slate-700 p-6 rounded-lg">
+                            <label class="block text-white font-bold text-lg mb-4 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-yellow-400"></i> Tipe Semester
+                            </label>
+                            <div>
+                                <label class="text-gray-300 text-sm font-semibold">Pilih Semester</label>
+                                <p class="text-gray-400 text-xs mb-2">Optimasi untuk semester ganjil atau genap</p>
+                                <select id="semesterType" class="w-full px-4 py-2 bg-slate-600 text-white rounded border border-slate-500 focus:border-blue-400">
+                                    <option value="ganjil">Semester Ganjil (1, 3, 5, 7)</option>
+                                    <option value="genap">Semester Genap (2, 4, 6, 8)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- GA Parameters Section -->
+                        <div class="bg-slate-700 p-6 rounded-lg">
+                            <label class="block text-white font-bold text-lg mb-4 flex items-center gap-2">
+                                <i class="fas fa-sliders-h text-green-400"></i> Parameter Algoritma
+                            </label>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-gray-300 text-sm font-semibold">Ukuran Populasi</label>
+                                    <p class="text-gray-400 text-xs mb-2">Jumlah jadwal yang di-generate per generasi (lebih besar = hasil lebih baik tapi lebih lambat)</p>
+                                    <input type="number" id="populationSize" value="700" min="100" max="1000" class="w-full px-4 py-2 bg-slate-600 text-white rounded border border-slate-500 focus:border-blue-400">
+                                </div>
+                                <div>
+                                    <label class="text-gray-300 text-sm font-semibold">Maksimal Generasi</label>
+                                    <p class="text-gray-400 text-xs mb-2">Berapa kali iterasi (lebih tinggi = hasil lebih baik)</p>
+                                    <input type="number" id="maxGenerations" value="10000" min="100" max="50000" class="w-full px-4 py-2 bg-slate-600 text-white rounded border border-slate-500 focus:border-blue-400">
+                                </div>
+                                <div>
+                                    <label class="text-gray-300 text-sm font-semibold">Tingkat Mutasi</label>
+                                    <p class="text-gray-400 text-xs mb-2">Probabilitas perubahan jadwal (0.01 - 1.00)</p>
+                                    <input type="number" id="mutationRate" value="0.35" min="0.01" max="1.00" step="0.01" class="w-full px-4 py-2 bg-slate-600 text-white rounded border border-slate-500 focus:border-blue-400">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-3">
+                            <!-- Checkbox Perbandingan -->
+                            <div class="bg-purple-900 bg-opacity-30 border border-purple-500 rounded-lg p-4">
+                                <label class="flex items-start cursor-pointer">
+                                    <input type="checkbox" id="compareMode" class="mt-1 mr-3 w-5 h-5 text-purple-500 bg-slate-700 border-slate-500 rounded focus:ring-purple-500">
+                                    <div>
+                                        <div class="text-white font-semibold">🔬 Mode Perbandingan</div>
+                                        <p class="text-gray-400 text-xs mt-1">Bandingkan algoritma Genetika Murni vs Genetika + Greedy (waktu lebih lama)</p>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <button type="button" onclick="loadDefaults()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2 text-lg">
+                                <i class="fas fa-download"></i> Muat Data Default
+                            </button>
+                            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg">
+                                <i class="fas fa-play"></i> Mulai Optimasi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Area -->
+            <div class="lg:col-span-3 space-y-6">
+                <!-- Status -->
+                <div id="statusContainer" class="hidden bg-slate-800 rounded-lg shadow-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-white">
+                            <i class="fas fa-spinner fa-spin text-blue-400"></i> Proses Berjalan
+                        </h2>
+                        <span id="progressText" class="text-blue-400 font-mono text-sm font-bold">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-4">
+                        <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-400 h-4 rounded-full transition-all" style="width: 0%"></div>
+                    </div>
+                    <p id="statusMessage" class="text-gray-400 mt-4 text-sm">Inisialisasi populasi...</p>
+                </div>
+
+                <!-- Results -->
+                <div id="resultsContainer" class="hidden space-y-4">
+                    <div class="bg-gradient-to-r from-green-600 to-green-500 rounded-lg shadow-2xl p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-2xl font-bold">
+                                <i class="fas fa-check-circle"></i> Optimasi Selesai
+                            </h3>
+                            <span id="penaltyBadge" class="px-4 py-2 bg-white bg-opacity-20 rounded-full text-sm font-semibold">Optimal</span>
+                        </div>
+                        <p id="penaltyText" class="text-green-50">Penalti Total: 0.00</p>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs-container flex gap-2 bg-slate-800 p-3 rounded-lg overflow-x-auto">
+                        <button type="button" onclick="switchTab('overview')" class="tab-btn active px-4 py-2 bg-blue-500 text-white rounded font-semibold whitespace-nowrap text-sm transition">
+                            <i class="fas fa-chart-bar"></i> Overview
+                        </button>
+                        <!-- Tab semester akan ditambahkan dinamis oleh JavaScript -->
+                    </div>
+                    
+                    <!-- Tab Contents - buat template untuk semester 1-8 -->
+                    <div id="overview" class="tab-content bg-slate-800 rounded-lg shadow-2xl p-6">
+                        <div id="overviewContent" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem1" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem1Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem2" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem2Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem3" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem3Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem4" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem4Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem5" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem5Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem6" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem6Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem7" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem7Content" class="space-y-3"></div>
+                    </div>
+                    
+                    <div id="sem8" class="tab-content hidden bg-slate-800 rounded-lg shadow-2xl p-6 max-h-96 overflow-y-auto">
+                        <div id="sem8Content" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Download -->
+                    <button type="button" onclick="downloadSchedule()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 text-lg transition">
+                        <i class="fas fa-download"></i> Download Jadwal (Excel)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RUANGAN (Add + Edit) -->
+    <div id="roomModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 rounded-xl shadow-2xl p-8 max-w-md w-full border border-slate-600">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="roomModalTitle" class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-door-open text-blue-400"></i> Tambah Ruangan
+                </h3>
+                <button type="button" onclick="closeRoomModal()" class="text-gray-400 hover:text-white text-xl transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-white font-semibold mb-1">ID Ruangan</label>
+                    <p class="text-gray-400 text-xs mb-2">Contoh: R01, R02, LAB1, dll (tidak bisa diubah saat edit)</p>
+                    <input type="text" id="roomId" placeholder="Cth: R01"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-400 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Kapasitas (orang)</label>
+                    <p class="text-gray-400 text-xs mb-2">Jumlah kursi/tempat duduk (minimal 20)</p>
+                    <input type="number" id="roomCapacity" placeholder="Contoh: 50" min="20"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-400 focus:outline-none transition">
+                </div>
+                <!-- Badge info kapasitas realtime -->
+                <div id="roomCapacityPreview" class="hidden bg-blue-900 bg-opacity-40 border border-blue-600 rounded-lg p-3 text-sm text-blue-300 flex items-center gap-2">
+                    <i class="fas fa-users"></i>
+                    <span id="roomCapacityPreviewText">Kapasitas: -</span>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeRoomModal()"
+                    class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded-lg transition">
+                    Batal
+                </button>
+                <button type="button" onclick="saveRoom()" id="roomSaveBtn"
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> <span id="roomSaveBtnText">Simpan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DOSEN (Add + Edit) -->
+    <div id="dosenModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 rounded-xl shadow-2xl p-8 max-w-md w-full border border-slate-600">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="dosenModalTitle" class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-user-tie text-purple-400"></i> Tambah Dosen
+                </h3>
+                <button type="button" onclick="closeDosenModal()" class="text-gray-400 hover:text-white text-xl transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-white font-semibold mb-1">ID Dosen</label>
+                    <p class="text-gray-400 text-xs mb-2">Contoh: D01, D02, DR01, dll (tidak bisa diubah saat edit)</p>
+                    <input type="text" id="dosenId" placeholder="Cth: D01"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-400 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Nama Dosen</label>
+                    <p class="text-gray-400 text-xs mb-2">Nama lengkap pengajar</p>
+                    <input type="text" id="dosenName" placeholder="Contoh: Prof. Ahmad"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-400 focus:outline-none transition">
+                </div>
+                <!-- Hari Mengajar -->
+                <div>
+                    <label class="block text-white font-semibold mb-1">Hari Mengajar</label>
+                    <p class="text-gray-400 text-xs mb-2">Pilih hari yang tersedia (minimal 1)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center bg-slate-700 hover:bg-slate-600 p-2 rounded-lg cursor-pointer transition border border-slate-600 hover:border-purple-500">
+                            <input type="checkbox" id="daySenin" class="mr-2 accent-purple-500" checked>
+                            <span class="text-white text-sm">Senin</span>
+                        </label>
+                        <label class="flex items-center bg-slate-700 hover:bg-slate-600 p-2 rounded-lg cursor-pointer transition border border-slate-600 hover:border-purple-500">
+                            <input type="checkbox" id="daySelasa" class="mr-2 accent-purple-500" checked>
+                            <span class="text-white text-sm">Selasa</span>
+                        </label>
+                        <label class="flex items-center bg-slate-700 hover:bg-slate-600 p-2 rounded-lg cursor-pointer transition border border-slate-600 hover:border-purple-500">
+                            <input type="checkbox" id="dayRabu" class="mr-2 accent-purple-500" checked>
+                            <span class="text-white text-sm">Rabu</span>
+                        </label>
+                        <label class="flex items-center bg-slate-700 hover:bg-slate-600 p-2 rounded-lg cursor-pointer transition border border-slate-600 hover:border-purple-500">
+                            <input type="checkbox" id="dayKamis" class="mr-2 accent-purple-500" checked>
+                            <span class="text-white text-sm">Kamis</span>
+                        </label>
+                        <label class="flex items-center bg-slate-700 hover:bg-slate-600 p-2 rounded-lg cursor-pointer transition border border-slate-600 hover:border-purple-500">
+                            <input type="checkbox" id="dayJumat" class="mr-2 accent-purple-500" checked>
+                            <span class="text-white text-sm">Jumat</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeDosenModal()"
+                    class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded-lg transition">
+                    Batal
+                </button>
+                <button type="button" onclick="saveDosen()" id="dosenSaveBtn"
+                    class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> <span id="dosenSaveBtnText">Simpan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MATA KULIAH (Add + Edit) -->
+    <div id="courseModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-800 rounded-xl shadow-2xl p-8 max-w-2xl w-full border border-slate-600 my-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="courseModalTitle" class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-book text-yellow-400"></i> Tambah Mata Kuliah
+                </h3>
+                <button type="button" onclick="closeCourseModal()" class="text-gray-400 hover:text-white text-xl transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-white font-semibold mb-1">Nama Mata Kuliah</label>
+                    <p class="text-gray-400 text-xs mb-2">Contoh: KALKULUS_I (tanpa spasi, tidak bisa diubah saat edit)</p>
+                    <input type="text" id="courseName" placeholder="Cth: KALKULUS_I"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Semester</label>
+                    <p class="text-gray-400 text-xs mb-2">Pilih semester (1-8)</p>
+                    <select id="courseSem" class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                        <option value="1">Semester 1 (Ganjil)</option>
+                        <option value="2">Semester 2 (Genap)</option>
+                        <option value="3">Semester 3 (Ganjil)</option>
+                        <option value="4">Semester 4 (Genap)</option>
+                        <option value="5">Semester 5 (Ganjil)</option>
+                        <option value="6">Semester 6 (Genap)</option>
+                        <option value="7">Semester 7 (Ganjil)</option>
+                        <option value="8">Semester 8 (Genap)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Dosen Pengajar</label>
+                    <p class="text-gray-400 text-xs mb-2">Pilih dosen dari list</p>
+                    <select id="courseDosen" class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                        <option value="">-- Pilih Dosen --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Kapasitas Kelas</label>
+                    <p class="text-gray-400 text-xs mb-2">Jumlah mahasiswa (20-150)</p>
+                    <input type="number" id="courseCapacity" placeholder="Contoh: 63" min="20" max="150"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Durasi (Jam)</label>
+                    <p class="text-gray-400 text-xs mb-2">Berapa jam per sesi (1-6)</p>
+                    <input type="number" id="courseJam" placeholder="Contoh: 3" min="1" max="6"
+                        class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-white font-semibold mb-1">Tipe Kelas</label>
+                    <p class="text-gray-400 text-xs mb-2">Terpisah (A1,A2) atau Gabungan (A1A2)</p>
+                    <select id="courseTipe" class="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-yellow-400 focus:outline-none transition">
+                        <option value="terpisah">Terpisah (A1, A2)</option>
+                        <option value="gabungan">Gabungan (A1A2)</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Preview info -->
+            <div id="coursePreview" class="hidden mt-4 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded-lg p-3 text-sm">
+                <div class="text-yellow-300 font-semibold mb-1 flex items-center gap-2"><i class="fas fa-eye"></i> Preview</div>
+                <div id="coursePreviewText" class="text-yellow-200 text-xs"></div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeCourseModal()"
+                    class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded-lg transition">
+                    Batal
+                </button>
+                <button type="button" onclick="saveCourse()" id="courseSaveBtn"
+                    class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> <span id="courseSaveBtnText">Simpan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI HAPUS -->
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+        <div class="bg-slate-800 rounded-xl shadow-2xl p-6 max-w-sm w-full border border-red-700">
+            <div class="text-center mb-4">
+                <div class="text-5xl mb-3">⚠️</div>
+                <h3 class="text-xl font-bold text-white mb-2">Konfirmasi Hapus</h3>
+                <p id="deleteConfirmText" class="text-gray-300 text-sm">Apakah kamu yakin ingin menghapus item ini?</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeDeleteConfirm()"
+                    class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded-lg transition">
+                    Batal
+                </button>
+                <button type="button" id="deleteConfirmBtn"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
