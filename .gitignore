@@ -1,5 +1,4 @@
-appV2D.py
-appV3DF.py
-scheduling_engineV3D.py
-scheduling_engineV4DF.py
 venv/
+mongodb_data/
+__pycache__/
+uploads/
