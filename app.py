@@ -929,6 +929,12 @@ def optimize_start():
                         "mode": "hybrid",
                     }
                 )
+
+                # Baru seed yang sama untuk Kedua algoritma fair comparasion
+                # tanpa seed identik, satu algoritma bisa "menang" hanya karena
+                # keberuntungan populasi awal yg lebih menguntungkan
+                HYBRID_SEED = 42
+
                 schedule_ga, penalty_ga, structured_ga, metrics_ga = (
                     run_genetic_algorithm(
                         rooms=rooms,
@@ -938,6 +944,7 @@ def optimize_start():
                         semester_type=semester_type,
                         use_greedy=False,
                         progress_callback=make_callback("ga"),
+                        seed=HYBRID_SEED,  # seed harus sama
                     )
                 )
 
@@ -953,6 +960,7 @@ def optimize_start():
                         semester_type=semester_type,
                         use_greedy=True,
                         progress_callback=make_callback("greedy"),
+                        seed=HYBRID_SEED,  # Seed sama dengan ga murni
                     )
                 )
 
@@ -1355,6 +1363,9 @@ def optimize_schedule():
             print("🔬 PERBANDINGAN ALGORITMA (Dengan Multi-Aspek Tie-Breaking)")
             print("=" * 70)
 
+            # Seed identik untuk kedua algoritma fair comparison
+            HYBRID_SEED = 42
+
             # Jalankan GA Murni
             schedule_ga, penalty_ga, structured_ga, metrics_ga = run_genetic_algorithm(
                 rooms=rooms,
@@ -1363,6 +1374,7 @@ def optimize_schedule():
                 ga_params=ga_params,
                 semester_type=semester_type,
                 use_greedy=False,
+                seed=HYBRID_SEED,  # Baru
             )
 
             # Jalankan GA + Greedy
@@ -1374,6 +1386,7 @@ def optimize_schedule():
                     ga_params=ga_params,
                     semester_type=semester_type,
                     use_greedy=True,
+                    seed=HYBRID_SEED,  # Baru seed yg sama dengan ga murni
                 )
             )
 

@@ -284,6 +284,37 @@ class ConstraintViolationError(SchedulingError):
     pass
 
 
+# ===== [BARU] SEED RESOLVER =====
+def _resolve_seed(seed):
+    """
+    Menentukan seed RNG yang dipakai algoritma.
+
+    Logika:
+      - seed=None  (default / single-run mode)
+          → dynamic seed: kombinasi Unix-timestamp mikrodetik XOR random bits
+          → setiap pemanggilan menghasilkan populasi awal berbeda
+          → memberi peluang mendapat solusi lebih baik di setiap eksekusi
+          → jika user menjalankan ulang, hasilnya bisa berbeda (exploration)
+
+      - seed=int   (hybrid/comparison mode)
+          → fixed seed yang diberikan pemanggil
+          → kedua algoritma (GA Murni & GA+Greedy) mulai dari titik
+            random yang IDENTIK → fair comparison, bukan keberuntungan seed
+
+    Seed yang benar-benar dipakai selalu di-log ke terminal agar
+    hasil tetap bisa di-reproduce jika diperlukan (catat seed-nya).
+
+    Returns: int
+    """
+    if seed is None:
+        import time
+
+        # Timestamp mikrodetik XOR random 20-bit → cukup unik antar run
+        dynamic_seed = int(time.time() * 1_000_000) ^ random.randint(0, 2**20)
+        return dynamic_seed
+    return seed
+
+
 def is_break_time(day, hour, minute, duration_minutes):
     """Check if slot overlaps with break time"""
     start_time = datetime(2025, 1, 1, hour, minute)
@@ -1001,10 +1032,20 @@ def greedy_optimize(schedule, context, max_iterations=100):
         return schedule, calculate_fitness(schedule, context), []
 
 
-def run_ga_pure(context, ga_params, progress_callback=None):
+# ===== [DIMODIFIKASI] run_ga_pure — tambah parameter seed=None =====
+def run_ga_pure(context, ga_params, progress_callback=None, seed=None):
     """
     GA Murni — menggunakan komponen GA lengkap: seleksi, CROSSOVER, dan mutasi.
+
+    Parameter seed (BARU):
+      - None (default / single-run): dynamic seed → setiap run berbeda,
+        memberi peluang eksplorasi solusi yang lebih baik.
+      - int (dari hybrid caller): fixed seed → kedua algoritma mulai dari
+        titik random identik untuk perbandingan yang fair.
     """
+    # [BARU] Resolve seed sebelum apapun dijalankan
+    used_seed = _resolve_seed(seed)
+
     print(f"\n{'=' * 60}")
     print(f"Menjalankan GA MURNI (dengan Crossover)")
     print(f"{'=' * 60}")
@@ -1013,9 +1054,16 @@ def run_ga_pure(context, ga_params, progress_callback=None):
         f"Populasi: {ga_params['POPULATION_SIZE']} | Generasi: {ga_params['MAX_GENERATIONS']}"
     )
     print(f"Total courses: {len(context.courses)}")
+    # [BARU] Log seed agar bisa di-reproduce jika diperlukan
+    seed_label = (
+        f"FIXED  → seed={used_seed}"
+        if seed is not None
+        else f"DYNAMIC → seed={used_seed} (catat ini jika ingin reproduce)"
+    )
+    print(f"Random Seed : {seed_label}")
 
     ga_start_time = datetime.now()
-    random.seed(42)
+    random.seed(used_seed)  # [DIMODIFIKASI] dari random.seed(42) → dynamic/fixed
 
     population = []
     for _ in range(ga_params["POPULATION_SIZE"]):
@@ -1062,17 +1110,15 @@ def run_ga_pure(context, ga_params, progress_callback=None):
         generation_times.append((now - last_gen_time).total_seconds())
         last_gen_time = now
 
-        # Log rutin setiap LOG_INTERVAL generasi — selalu tampil meski tidak ada improvement
+        # Log rutin setiap LOG_INTERVAL generasi
         if generation % LOG_INTERVAL == 0:
             elapsed = (datetime.now() - ga_start_time).total_seconds()
             remaining_gens = ga_params["MAX_GENERATIONS"] - generation
 
-            # ETA berbasis moving average 200 generasi terakhir (lebih akurat dari rata-rata keseluruhan)
             window = generation_times[-200:]
             avg_gen_time = sum(window) / len(window) if window else 0
             eta_sec = remaining_gens * avg_gen_time if avg_gen_time > 0 else 0
 
-            # Juga hitung ETA keseluruhan sebagai pembanding (untuk rentang min–maks)
             gens_per_sec_overall = (generation + 1) / elapsed if elapsed > 0 else 0
             eta_sec_overall = (
                 remaining_gens / gens_per_sec_overall if gens_per_sec_overall > 0 else 0
@@ -1153,15 +1199,27 @@ def run_ga_pure(context, ga_params, progress_callback=None):
         "ga_generations": generation + 1,
         "total_time": ga_duration,
         "method": "GA Murni (Crossover + Mutasi)",
+        "seed_used": used_seed,  # [BARU] simpan ke metrics untuk transparansi
+        "seed_mode": "fixed" if seed is not None else "dynamic",  # [BARU]
     }
 
     return best_overall["schedule"], best_overall["fitness"], metrics
 
 
-def run_ga_greedy(context, ga_params, progress_callback=None):
+# ===== [DIMODIFIKASI] run_ga_greedy — tambah parameter seed=None =====
+def run_ga_greedy(context, ga_params, progress_callback=None, seed=None):
     """
-    GA + Greedy — menggunakan mekanisme Restart (bukan Crossover) untuk menghindari local optimum.
+    GA + Greedy — menggunakan mekanisme Restart (bukan Crossover).
+
+    Parameter seed (BARU):
+      - None (default / single-run): dynamic seed → setiap run berbeda,
+        memberi peluang eksplorasi solusi yang lebih baik.
+      - int (dari hybrid caller): fixed seed → kedua algoritma mulai dari
+        titik random identik untuk perbandingan yang fair.
     """
+    # [BARU] Resolve seed sebelum apapun dijalankan
+    used_seed = _resolve_seed(seed)
+
     print(f"\n{'=' * 60}")
     print(f"Menjalankan GA + GREEDY (Restart Mechanism)")
     print(f"{'=' * 60}")
@@ -1170,9 +1228,16 @@ def run_ga_greedy(context, ga_params, progress_callback=None):
         f"Populasi: {ga_params['POPULATION_SIZE']} | Generasi: {ga_params['MAX_GENERATIONS']}"
     )
     print(f"Total courses: {len(context.courses)}")
+    # [BARU] Log seed
+    seed_label = (
+        f"FIXED  → seed={used_seed}"
+        if seed is not None
+        else f"DYNAMIC → seed={used_seed} (catat ini jika ingin reproduce)"
+    )
+    print(f"Random Seed : {seed_label}")
 
     ga_start_time = datetime.now()
-    random.seed(42)
+    random.seed(used_seed)  # [DIMODIFIKASI] dari random.seed(42) → dynamic/fixed
 
     population = []
     for _ in range(ga_params["POPULATION_SIZE"]):
@@ -1185,10 +1250,10 @@ def run_ga_greedy(context, ga_params, progress_callback=None):
 
     generations_without_improvement = 0
     stagnation_threshold = 300
-    LOG_INTERVAL = 100  # print progress setiap N generasi
+    LOG_INTERVAL = 100
     last_logged_fitness = best_overall["fitness"]
 
-    generation_times = []  # Riwayat durasi tiap generasi untuk moving average ETA
+    generation_times = []
     last_gen_time = datetime.now()
 
     for generation in range(ga_params["MAX_GENERATIONS"]):
@@ -1216,17 +1281,14 @@ def run_ga_greedy(context, ga_params, progress_callback=None):
         generation_times.append((now - last_gen_time).total_seconds())
         last_gen_time = now
 
-        # Log rutin setiap LOG_INTERVAL generasi — selalu tampil meski tidak ada improvement
         if generation % LOG_INTERVAL == 0:
             elapsed = (datetime.now() - ga_start_time).total_seconds()
             remaining_gens = ga_params["MAX_GENERATIONS"] - generation
 
-            # ETA berbasis moving average 200 generasi terakhir (lebih akurat dari rata-rata keseluruhan)
             window = generation_times[-200:]
             avg_gen_time = sum(window) / len(window) if window else 0
             eta_sec = remaining_gens * avg_gen_time if avg_gen_time > 0 else 0
 
-            # Juga hitung ETA keseluruhan sebagai pembanding (untuk rentang min–maks)
             gens_per_sec_overall = (generation + 1) / elapsed if elapsed > 0 else 0
             eta_sec_overall = (
                 remaining_gens / gens_per_sec_overall if gens_per_sec_overall > 0 else 0
@@ -1329,11 +1391,14 @@ def run_ga_greedy(context, ga_params, progress_callback=None):
         "improvements": len(improvements),
         "penalty_reduction": best_overall["fitness"] - optimized_penalty,
         "method": "GA + Greedy (Restart + Greedy Post-processing)",
+        "seed_used": used_seed,  # [BARU]
+        "seed_mode": "fixed" if seed is not None else "dynamic",  # [BARU]
     }
 
     return optimized_schedule, optimized_penalty, metrics
 
 
+# ===== [DIMODIFIKASI] run_genetic_algorithm — tambah parameter seed=None =====
 def run_genetic_algorithm(
     rooms=None,
     dosen=None,
@@ -1342,9 +1407,16 @@ def run_genetic_algorithm(
     semester_type="ganjil",
     use_greedy=False,
     progress_callback=None,
+    seed=None,  # [BARU] None = dynamic (single-run), int = fixed (hybrid)
 ):
     """
     Entry point utama algoritma penjadwalan.
+
+    Parameter seed (BARU):
+      - None (default): dynamic seed → single-run mendapat hasil berbeda tiap eksekusi,
+        memungkinkan eksplorasi ruang solusi yang lebih luas.
+      - int: fixed seed → hybrid/comparison mode, kedua algoritma mulai dari titik
+        random yang sama agar perbandingan benar-benar fair.
     """
     if rooms is None:
         rooms = ROOMS
@@ -1362,13 +1434,14 @@ def run_genetic_algorithm(
             print(f"⚠ Tidak ada mata kuliah untuk semester {semester_type}")
             return None, 0, {}, None
 
+        # [DIMODIFIKASI] Teruskan seed ke fungsi runner
         if use_greedy:
             final_schedule, final_penalty, metrics = run_ga_greedy(
-                context, ga_params, progress_callback
+                context, ga_params, progress_callback, seed=seed
             )
         else:
             final_schedule, final_penalty, metrics = run_ga_pure(
-                context, ga_params, progress_callback
+                context, ga_params, progress_callback, seed=seed
             )
 
         structured_result = format_schedule_by_semester(final_schedule, context)
